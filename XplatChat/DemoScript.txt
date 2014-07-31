@@ -1,0 +1,117 @@
+	• 1.Start
+		○ Explain what we want the end app to do
+			§ Want to show how easy it is to use existing .Net libraries across all 3 platforms
+			§ We already have a SignalR hub running
+			§ Basically want the app to connect up to the service and listens for messages published by the server
+			§ 3 server functions
+				□ Join chat
+				□ Send message
+				□ Receive event (e.g. join notifications, messages from other users)
+		○ Open XplatChat.0.sln
+		○ Add Xamarin.iOS iPhone Blank App project called "XplatChat.NativeApp.iPhone"
+		○ Show
+			§ iOS project settings
+				□ Bundle signing
+				□ iOS Application settings
+			§ Build targets
+		○ Switch to iPhone simulator
+		○ Choose iPhone Retina (3.5")
+		○ Click on refresh (in VS.Net)
+		○ Add existing projects, Contract.Pcl
+		○ Add a basic view controller
+			§ New class MainViewController
+			§ Hook in to AppDelegate
+			§ Add view layout - STEP02
+			§ Build and push to simulator
+			§ Maybe give a brief overview of the layout code
+		○ Add Signalr client into solution
+			§ Remove
+				□ System.IO
+				□ System.Runtime
+				□ System.Threading.Tasks
+		○ Add reference to XplatChat.Contract.Pcl
+		○ Add to ViewDidLoad - STEP04
+		○ Build and push to simulator
+		○ now we want to create an Android app
+		○ Create an Android Blank App called "XplatChat.NativeApp.Android"
+		○ Build and push to Android emulator
+		○ Ok now lets tweak the UI to make it look like the iOS one
+			§ Show Android UI designer
+				□ Show toolbox, drag/drop
+			§ Change the xaml to - STEP05
+			§ Build and push to Android emulator
+		○ Now we want to implement our business logic
+			§ Problems!
+				□ Logic is embeded in iOS view - difficult to reuse
+				□ Need to split out logic so that the common non-platform specific logic is in a separate class so that we can reuse
+	• 3 - Refactor iOS logic into a shared project
+		○ Introduce a view model to encapsulate the logic
+		○ Use NPC
+		○ In iOS project
+			§ Create a ViewModels folder
+			§ Create MainViewModel.cs
+			§ Start with - STEP06
+				□ User
+				□ Message
+				□ Chat
+			§ Explaining each member
+			§ Rewrite with property change events
+			§ Now, move hub connection logic into start
+			§ Move chatHubProxy.Invoke logic into SendMessage
+			§ Should end up with - STEP07
+			§ Now go back to the MainViewController and hook in the view model
+			§ Should end up with - STEP08
+			§ Build and push to iPhone simulator
+		○ 4 - introduce a shared project to share the code between iOS and Android
+			§ Add new Shared Project (Empty) called "XplatChat.NativeApp.Shared"
+			§ Move ViewModels folder from iOS project to Shared project
+			§ Add shared project reference from iPhone to Shared project
+			§ Show how iPhone project only contains iOS specific stuff
+			§ Build and push to iPhone simulator
+			§ Now lets hook in to Android
+			§ Add shared project reference from Android to Shared project
+			§ Add reference from Android to PCL
+			§ Add SignalR nuget package to Android
+				□ Remove
+					□ System.IO
+					□ System.Runtime
+					□ System.Threading.Tasks
+			§ Build to check all is ok
+			§ Now to MainActivity to hook in the view model - STEP09
+		○ 5 - if time, build the windows phone one… otherwise can skip
+			§ Add new Blank App (Windows Phone) called "XplatChat.NativeApp.WinPhone"
+			§ Add a reference to PCL
+			§ Add a shared project reference to "shared"
+			§ Add nuget package SignalR
+			§ Remove
+				□ System.IO
+				□ System.Runtime
+				□ System.Threading.Tasks
+			§ Build and push to WinPhone emulator (blank screen)
+			§ Open mainpage.xaml, replace the <Grid/> element with - STEP10
+			§ Go to code behind and change MainPage constructor to - STEP11
+			§ Build and push to WinPhone emulator
+			§ What are some of the issues with this?
+				□ Duplicated view logic across platforms
+		○ 7 - Xamarin Forms
+			§ Add a new "Blank App (Xamarin.Forms Shared)" called "XplatChat.FormsApp"
+			§ Fixes
+				□ WindowsPhone
+					□ Open WMAppManifest.xml with xml editor
+					□ Add {} to ProductID and PublisherID
+			§ Show App.GetMainPage() with custom XF layout
+			§ Show hooks into each platform
+			§ Build and push to Android
+		○ 8 - finish off forms
+			§ Add main page forms layout - STEP12
+			§ Build and push to a few platofrms
+			§ Now hook in ViewModel:
+				□ Add reference to Pcl from each platform
+				□ Add reference to shared viewmodel project from each platform
+				□ Add signalr nuget package to each platform
+				□ Remove
+					□ System.IO
+					□ System.Runtime
+					□ System.Threading.Tasks
+				□ Add the folowing to MainPage - STEP13
+				□ And - STEP14

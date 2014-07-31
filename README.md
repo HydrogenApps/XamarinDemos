@@ -1,4 +1,4 @@
-XamarinDemos
+Xamarin Demos
 ============
 
 This repo contains a number of sample Xamarin apps that have been put together for doing presentation demos. Each demo folder will usually contain:

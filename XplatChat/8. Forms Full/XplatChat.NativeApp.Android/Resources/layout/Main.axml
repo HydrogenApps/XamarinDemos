@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:minWidth="25px"
+    android:minHeight="25px">
+    <LinearLayout
+        android:orientation="horizontal"
+        android:minWidth="25px"
+        android:minHeight="25px"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/linearLayout1">
+        <EditText
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:id="@+id/txtMessage"
+            android:layout_weight="1"
+            android:hint="Enter message" />
+        <Button
+            android:text="Send"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:id="@+id/btnSend" />
+    </LinearLayout>
+    <TextView
+        android:text="Text"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:id="@+id/txtChat"
+        android:layout_weight="1" />
+</LinearLayout>

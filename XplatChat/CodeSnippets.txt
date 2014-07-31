@@ -1,0 +1,427 @@
+
+Server accepts:
+void Join(JoinRequest request);
+void SendMessage(SendMessageRequest request);
+
+Server sends:
+void NewXplatEvent(XplatEvent xplatEvent);
+
+
+
+###STEP01
+
+New class MainViewController:
+-----------------------------
+
+public class MainViewController : UIViewController
+{
+        public override void ViewDidLoad()
+        {
+            base.ViewDidLoad();
+
+            View.BackgroundColor = UIColor.Blue;
+            View.AddSubview(new UILabel(new RectangleF(0, 0, 100,100)){Text = "Hello World"});
+        }
+}
+
+###STEP02
+
+Add to MainViewController
+-----------------------------
+
+private UITextField txtMessage;
+private UITextView txtChat;
+private UIButton btnSend;
+
+private void SetupView()
+{
+    View.BackgroundColor = UIColor.White;
+
+
+    txtMessage = new UITextField { TranslatesAutoresizingMaskIntoConstraints = false };
+    txtChat = new UITextView { TranslatesAutoresizingMaskIntoConstraints = false, TextAlignment = UITextAlignment.Left, Editable = false };
+    btnSend = new UIButton(UIButtonType.System) { TranslatesAutoresizingMaskIntoConstraints = false };
+    btnSend.SetTitle("Send", UIControlState.Normal);
+
+    Add(txtMessage);
+    Add(txtChat);
+    Add(btnSend);
+
+    var nsDictionary = NSDictionary.FromObjectsAndKeys(new object[] { txtMessage, txtChat, btnSend }, new[] { "txtMessage", "lblChat", "btnSend" });
+
+    View.AddConstraints(NSLayoutConstraint.FromVisualFormat("V:|-[txtMessage(==20)]", NSLayoutFormatOptions.DirectionLeadingToTrailing, null, nsDictionary));
+    View.AddConstraints(NSLayoutConstraint.FromVisualFormat("H:|-0-[txtMessage]-[btnSend(==100)]-0-|", NSLayoutFormatOptions.DirectionLeadingToTrailing, null, nsDictionary));
+
+    View.AddConstraints(NSLayoutConstraint.FromVisualFormat("V:|-[btnSend(==20)]", NSLayoutFormatOptions.DirectionLeadingToTrailing, null, nsDictionary));
+
+    View.AddConstraints(NSLayoutConstraint.FromVisualFormat("V:[txtMessage]-[lblChat]-|", NSLayoutFormatOptions.DirectionLeadingToTrailing, null, nsDictionary));
+    View.AddConstraints(NSLayoutConstraint.FromVisualFormat("H:|-0-[lblChat]-0-|", NSLayoutFormatOptions.DirectionLeadingToTrailing, null, nsDictionary));
+
+
+    txtMessage.Placeholder = "Enter message";
+}
+
+
+
+###STEP03
+
+N/A
+
+
+###STEP04
+
+Add to ViewDidLoad
+-----------------------------
+
+private HubConnection _hubConnection;
+private IHubProxy _chatHubProxy;
+
+throw new Exception("CHECK IP ADDRESS");
+_hubConnection = new HubConnection("http://10.37.129.4/XplatChat.Service.Endpoint"); 
+_chatHubProxy = _hubConnection.CreateHubProxy("ChatHub");
+
+_chatHubProxy.On<XplatEvent>("NewXplatEvent", xplatEvent =>
+            
+	UIApplication.SharedApplication.InvokeOnMainThread(() =>
+	{
+		string chat = "";
+		switch (xplatEvent.EventType)
+		{
+			case XplatEventTypeEnum.UserLeft:
+				chat = string.Format("{0:hh:mm:ss} User {1} left", xplatEvent.WhenOccurred, xplatEvent.Name);
+				break;
+			case XplatEventTypeEnum.UserJoined:
+				chat = string.Format("{0:hh:mm:ss} User {1} joined", xplatEvent.WhenOccurred, xplatEvent.Name);
+				break;
+			case XplatEventTypeEnum.Message:
+				chat = string.Format("{0:hh:mm:ss} {1}: {2}", xplatEvent.WhenOccurred, xplatEvent.Name, xplatEvent.Message);
+				break;
+		}
+		txtChat.Text = string.Format("{0}\n{1}", chat, txtChat.Text);
+	})
+);
+
+btnSend.TouchUpInside += (sender, args) =>
+{
+	_chatHubProxy.Invoke("SendMessage", new SendMessageRequest { Name = "Tim", Message = txtMessage.Text });
+    txtMessage.Text = "";
+};
+
+_hubConnection.Start(new LongPollingTransport()).ContinueWith((result) => _chatHubProxy.Invoke("Join", new JoinRequest {Name = "Tim"}));
+
+
+###STEP05
+
+Add axml
+-----------------------------
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:minWidth="25px"
+    android:minHeight="25px">
+    <LinearLayout
+        android:orientation="horizontal"
+        android:minWidth="25px"
+        android:minHeight="25px"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/linearLayout1">
+        <EditText
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:id="@+id/txtMessage"
+            android:layout_weight="1"
+            android:hint="Enter message" />
+        <Button
+            android:text="Send"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:id="@+id/btnSend" />
+    </LinearLayout>
+    <TextView
+        android:text="Text"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:id="@+id/txtChat"
+        android:layout_weight="1" />
+</LinearLayout>
+
+###STEP06
+
+Create MainViewModel
+-----------------------------
+
+public class MainViewModel
+{
+    public string Message { get; set; }
+    public string Chat { get; set; }
+    public string User { get; set; }
+
+    public void Start(string userName)
+    {
+        
+    }
+
+    public void Send()
+    {
+        
+    }
+}
+
+###STEP07
+
+Add property change events - use ctrl-e, ctrl-l, propertychange template
+Move hub connection logic into start
+Move chatHubProxy.Invoke into SendMessage
+-----------------------------
+
+private HubConnection _hubConnection;
+private IHubProxy _chatHubProxy;
+
+public async void Start(string userName)
+{
+    User = userName;
+    _hubConnection = new HubConnection("http://192.168.55.146/XplatChat.Service.Endpoint"); //CHECK IP ADDRESS!
+    _chatHubProxy = _hubConnection.CreateHubProxy("ChatHub");
+
+	_chatHubProxy.On<XplatEvent>("NewXplatEvent", xplatEvent =>
+	{
+		string chat = "";
+		switch (xplatEvent.EventType)
+		{
+			case XplatEventTypeEnum.UserLeft:
+				chat = string.Format("{0:hh:mm:ss} User {1} left", xplatEvent.WhenOccurred, xplatEvent.Name);
+				break;
+			case XplatEventTypeEnum.UserJoined:
+				chat = string.Format("{0:hh:mm:ss} User {1} joined", xplatEvent.WhenOccurred, xplatEvent.Name);
+				break;
+			case XplatEventTypeEnum.Message:
+				chat = string.Format("{0:hh:mm:ss} {1}: {2}", xplatEvent.WhenOccurred, xplatEvent.Name, xplatEvent.Message);
+				break;
+		}
+		Chat = string.Format("{0}\n{1}", chat, Chat);
+	});
+	await _hubConnection.Start(new LongPollingTransport()); //Long polling seemed to be more reliable on WP
+	await _chatHubProxy.Invoke("Join", new JoinRequest { Name = User });
+}
+
+public async void Send()
+{
+    await _chatHubProxy.Invoke("SendMessage", new SendMessageRequest { Name = User, Message = Message });
+    Message = "";
+}
+
+###STEP08
+
+Hook in MainViewModel to MainViewController
+-----------------------------
+
+public override void ViewDidLoad()
+{
+
+    base.ViewDidLoad();
+
+    SetupView();
+
+    btnSend.TouchUpInside += (sender, args) => _viewModel.Send();
+    txtMessage.AllEditingEvents += (sender, args) => _viewModel.Message = txtMessage.Text;            
+    _viewModel.MessageChanged += () => UIApplication.SharedApplication.InvokeOnMainThread(() =>
+    {
+        if (txtMessage.Text != _viewModel.Message)
+            txtMessage.Text = _viewModel.Message;
+    });
+    _viewModel.ChatChanged += () => UIApplication.SharedApplication.InvokeOnMainThread(() => txtChat.Text = _viewModel.Chat);
+
+    _viewModel.Start("Tim");
+}
+
+###STEP09
+
+Hook in MainViewModel to MainActivity
+-----------------------------
+
+private MainViewModel _viewModel = new MainViewModel();
+
+protected override void OnCreate(Bundle bundle)
+{
+    base.OnCreate(bundle);
+
+    // Set our view from the "main" layout resource
+    SetContentView(Resource.Layout.Main);
+
+    var btnSend = FindViewById<Button>(Resource.Id.btnSend);
+    var txtMessage = FindViewById<EditText>(Resource.Id.txtMessage);
+    var txtChat = FindViewById<TextView>(Resource.Id.txtChat);
+
+    btnSend.Click += (sender, args) => _viewModel.Send();            
+    txtMessage.TextChanged += (sender, args) => _viewModel.Message = txtMessage.Text;
+    _viewModel.MessageChanged += () => RunOnUiThread(() =>
+    {
+        if (txtMessage.Text != _viewModel.Message)
+            txtMessage.Text = _viewModel.Message;
+    });
+    _viewModel.ChatChanged += () => RunOnUiThread(() => txtChat.Text = _viewModel.Chat);
+
+    _viewModel.Start("Larry");
+}
+
+###STEP10
+
+Add layout to WinPhone mainpage.xaml
+-----------------------------
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="auto" />
+        </Grid.ColumnDefinitions>
+        <TextBox x:Name="TxtMessage" PlaceholderText="Enter message" TextWrapping="NoWrap"  Grid.Column="0" Grid.Row="0" FontSize="20" />
+        <Button x:Name="BtnSend" Content="Send" Grid.Column="1" Grid.Row="0" />
+        <TextBlock x:Name="TxtChat" Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" VerticalAlignment="Stretch" FontSize="20"></TextBlock>
+    </Grid>
+
+
+###STEP11
+
+Hook MainViewModel into mainpage.xaml.cs
+-----------------------------
+private MainViewModel _viewModel = new MainViewModel();
+
+public MainPage()
+{
+    this.InitializeComponent();
+
+    this.NavigationCacheMode = NavigationCacheMode.Required;
+
+    BtnSend.Click += (sender, args) => _viewModel.Send();            
+    TxtMessage.TextChanged += (sender, args) => _viewModel.Message = TxtMessage.Text;
+    _viewModel.MessageChanged += () => Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+    {
+        if (TxtMessage.Text != _viewModel.Message)
+            TxtMessage.Text = _viewModel.Message;
+    });
+    _viewModel.ChatChanged += () => Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => TxtChat.Text = _viewModel.Chat);
+
+    _viewModel.Start("Satya");
+}
+
+
+###STEP12
+
+Add MainPage forms layout and connect to App.GetMainPage()
+-----------------------------
+
+public class MainPage : ContentPage
+{
+    public MainPage()
+    {
+
+        Entry txtMessage;
+        Button btnSend;
+        Editor txtChat;
+
+		Content = new StackLayout
+            {
+                VerticalOptions = LayoutOptions.FillAndExpand,
+                Padding = new Thickness(5, 30, 5, 5),
+                Spacing = 0,
+                Children =
+				                {
+				                    new StackLayout
+				                    {
+				                        Orientation = StackOrientation.Horizontal,
+                                       Spacing = 4,
+                                       BackgroundColor = Color.White,
+				                        Children =
+				                        {
+				                            (txtMessage = new Entry {Placeholder = "Enter message", HorizontalOptions = LayoutOptions.FillAndExpand, TextColor = Color.Black}),
+				                            (btnSend = new Button {Text = "Send", BackgroundColor = Color.Lime, TextColor = Color.White, BorderRadius = 0, BorderWidth = 0})
+				                        }
+				                    },
+				                    (txtChat = new Editor
+				                    {
+				                        Text = @"",
+				                        IsEnabled = false,
+				                        VerticalOptions = LayoutOptions.FillAndExpand,
+                                        BackgroundColor = Color.White
+				                    })
+				                }
+            };
+    }
+}
+
+
+###STEP13
+
+Hook in MainViewModel to MainPage
+-----------------------------
+
+var viewModel = new MainViewModel();
+viewModel.Start(GetUserName());
+
+btnSend.Clicked += (sender, args) => viewModel.Send();            
+txtMessage.TextChanged += (sender, args) => viewModel.Message = txtMessage.Text;
+viewModel.MessageChanged += () => Device.BeginInvokeOnMainThread(() =>
+{
+    if (txtMessage.Text != viewModel.Message)
+        txtMessage.Text = viewModel.Message;
+});
+
+viewModel.ChatChanged += () => Device.BeginInvokeOnMainThread(() => txtChat.Text = viewModel.Chat);
+
+###STEP14
+
+Add GetUserName function to MainPage
+-----------------------------
+private string GetUserName()
+{
+    switch (Device.OS)
+    {
+        case TargetPlatform.iOS:
+            return "Tim";
+        case TargetPlatform.Android:
+            return "Larry";
+        case TargetPlatform.WinPhone:
+            return "Satya";
+    }
+    return "";
+}
+
+
+
+
+
+###OTHER
+
+    public class LoggerTextWriter : TextWriter
+    {
+        private StringBuilder _sb = new StringBuilder();
+        public string ContextName { get; set; }
+        public override void Write(char value)
+        {
+            if (char.IsControl(value))
+            {
+                System.Diagnostics.Debug.WriteLine(string.Format("{0} {1}", ContextName, _sb));
+                
+                _sb.Clear();
+            }
+            else
+            {
+                _sb.Append(value);
+            }
+        }
+
+        public override Encoding Encoding
+        {
+            get { return Encoding.UTF8; }
+        }
+    }
+	
+	            _hubConnection.TraceLevel = TraceLevels.All;
+            _hubConnection.TraceWriter = new LoggerTextWriter { ContextName = "ServiceHubConnection" };
